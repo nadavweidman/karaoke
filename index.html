@@ -37,6 +37,8 @@ button:disabled{opacity:.4;cursor:default}
 #screen.video #vid{display:block}
 #screen.yt #ytbox{display:block}
 #screen.video #viz,#screen.yt #viz{display:none}
+#screen.ytl #ytbox{display:block;inset:auto;top:16px;inset-inline-end:16px;width:clamp(356px,24vw,480px);height:auto;aspect-ratio:16/9;border-radius:14px;overflow:hidden;z-index:3;box-shadow:0 12px 40px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15)}
+#screen.ytl #lyrics{top:max(11%,240px)}
 
 #np{position:absolute;top:14px;inset-inline-start:16px;z-index:3;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
 .pill{background:rgba(10,5,22,.7);border:1px solid rgba(255,255,255,.12);padding:6px 14px;border-radius:999px;font-size:15px;backdrop-filter:blur(6px)}
@@ -216,6 +218,7 @@ html.guestmode,body.guest{overflow:auto;height:auto}
       <span class="tgroup" dir="ltr" title="תזמון המילים (אפשר גם עם מקשי הסוגריים המרובעים)"><button class="tb" id="tLate" title="המילים מאוחר יותר">−</button><span id="tOff">0.0 שנ׳</span><button class="tb" id="tEarly" title="המילים מוקדם יותר">+</button> <span dir="rtl">תזמון מילים</span></span>
       <span class="tgroup">🔊 <input type="range" id="tVol" min="0" max="1" step="0.02"></span>
       <button class="tb" id="tPanel" title="הצגה / הסתרה של התפריט (P)">☰</button>
+      <button class="tb" id="tView" title="החלפה בין מסך המילים לסרטון מלא" hidden></button>
       <button class="tb" id="tTV" title="מסך מלא לטלוויזיה (F)">📺 מסך מלא</button>
     </div>
   </main>
@@ -310,7 +313,7 @@ html.guestmode,body.guest{overflow:auto;height:auto}
   </div>
   <div id="edResults"></div>
   <textarea id="edLyrics" rows="7" placeholder="הדביקו כאן את המילים. מילים עם זמנים (בפורמט LRC) מתקדמות יחד עם המוזיקה. גם טקסט רגיל עובד."></textarea>
-  <p class="tip" id="edYtTip">בסרטוני קריוקי המילים כבר מופיעות — השאירו את השדה ריק. לקליפ רגיל אפשר להוסיף מילים והן יופיעו מעל הסרטון.</p>
+  <p class="tip" id="edYtTip">המילים נמצאות אוטומטית ומוצגות במסך המילים הגדול, והסרטון מתנגן בחלון קטן בפינה. אם אין מילים מתוזמנות, הסרטון יוצג במסך מלא.</p>
   <div id="edVocalRow"><label>הנמכת קול הזמר: <span id="edVocalVal"></span><input type="range" id="edVocal" min="0" max="1" step="0.05"></label>
   <p class="tip">מנמיך את מה שנמצא במרכז ההקלטה — בדרך כלל זה הזמר. בחלק מהשירים זה עובד מעולה ובחלק פחות, ואפשר לכוונן תוך כדי השיר.</p></div>
   <div class="row end">
@@ -599,7 +602,8 @@ let phase='idle',now=null,readyTimer=null,advTimer=null,token=0,vidURL=null;
 const score={hit:0,total:0,floor:.01};
 function clearTimers(){clearInterval(readyTimer);clearTimeout(advTimer);readyTimer=advTimer=null}
 function stopMedia(){token++;vid.pause();vid.removeAttribute('src');vid.load();if(ytPlayer&&ytPlayer.stopVideo)try{ytPlayer.stopVideo()}catch{}P.kind=null;Lyr.clear();$('#np').innerHTML=''}
-function setMode(m){const s=$('#screen');s.className=m;Lyr.frac=m==='audio'?.42:.36}
+function setMode(m){const s=$('#screen');s.className=m;Lyr.frac=m==='audio'||m==='ytl'?.42:.36;
+  const b=$('#tView');b.hidden=!(m==='yt'||m==='ytl');b.textContent=m==='ytl'?'📺 סרטון מלא':'🎤 מסך מילים'}
 function setPhase(p){phase=p;renderOverlay();renderQueue();updatePlayBtn();updateQrCorner()}
 
 function getReady(entry){
@@ -617,7 +621,7 @@ async function startSong(entry){
   $('#np').innerHTML=`<span class="pill">🎤 <b>${esc(bi(entry.singer))}</b> · ${esc(songTitle(song))}</span>`+(Q[0]?`<span class="pill">הבא בתור: ${esc(bi(Q[0].singer))}</span>`:'');
   audio();updateTransport();
   if(song.kind==='yt'){
-    setMode('yt');Lyr.load(song.lyricsText,song);P.kind='yt';ytLast={raw:-1,t:0,at:0};
+    setMode(lyricKind(song.lyricsText)!=='none'&&song.view!=='video'?'ytl':'yt');Lyr.load(song.lyricsText,song);P.kind='yt';ytLast={raw:-1,t:0,at:0};
     try{await ensureYT()}catch{toast('אין חיבור ליוטיוב — בדקו את האינטרנט.');return}
     if(my!==token)return;
     if(!ytPlayer){ytPlayer=new YT.Player('yt',{width:'100%',height:'100%',videoId:song.ytId,
@@ -626,6 +630,7 @@ async function startSong(entry){
         onStateChange:e=>{updatePlayBtn();if(e.data===0&&P.kind==='yt'&&phase==='playing')songEnded()},
         onError:e=>{if(P.kind!=='yt')return;toast(e.data===101||e.data===150?'בעלי הסרטון לא מאפשרים לנגן אותו מחוץ ליוטיוב. נסו סרטון אחר.':'יוטיוב לא הצליח לנגן את הסרטון.',6000);advTimer=setTimeout(advance,3500)}}})}
     else{ytPlayer.loadVideoById(song.ytId);ytPlayer.setVolume(Math.round(S.volume*100))}
+    ytAutoLyrics(song,my);
   }else{
     let blob=song.blob,lrc=song.lyricsText;
     if(song.kind==='builtin'){const b=await birthdaySong(S.bdayName,song.lang);if(my!==token)return;blob=b.blob;lrc=b.lrc}
@@ -749,7 +754,7 @@ $('#whoCancel').onclick=()=>$('#who').classList.remove('on');
 let draft=null,draftNew=false,draftDur=0,lastResults=[];
 function nameFromFile(fn){let b=fn.replace(/\.[^.]+$/,'').replace(/_/g,' ').replace(/^\s*\d{1,3}[\s.\-_)]+/,'').trim();
   const p=b.split(/\s+[-–—]\s+/);return p.length>=2?{artist:p[0].trim(),title:p.slice(1).join(' - ').trim()}:{artist:'',title:b}}
-function splitYtTitle(t,author){t=cleanQuery(t);const p=t.split(/\s+[-–—|]\s+/);if(p.length>=2)return {artist:p[0].trim(),title:p[1].trim()};
+function splitYtTitle(t,author){t=cleanQuery(t).replace(/^[\s\-–—|:]+|[\s\-–—|:]+$/g,'');const p=t.split(/\s+[-–—|]\s+/);if(p.length>=2)return {artist:p[0].trim(),title:p[1].trim()};
   return {artist:(author||'').replace(/\s*-\s*Topic$/,'').replace(/karaoke|sing king|lyrics/ig,'').trim(),title:t}}
 function probeDuration(blob){return new Promise(res=>{const a=document.createElement('audio'),u=URL.createObjectURL(blob);let done=false;
   const fin=d=>{if(done)return;done=true;URL.revokeObjectURL(u);res(isFinite(d)?d:0)};a.preload='metadata';a.onloadedmetadata=()=>fin(a.duration);a.onerror=()=>fin(0);a.src=u;setTimeout(()=>fin(0),6000)})}
@@ -767,11 +772,11 @@ function openEditor(s,isNew){
   if(s.kind==='yt'&&isNew)setTimeout(()=>$('#edUrl').focus(),30);
 }
 function lyrState(){const k=lyricKind($('#edLyrics').value);$('#edLyrState').innerHTML=k==='synced'?'<span class="badge">מתוזמנות ✓</span>':k==='plain'?'<span class="badge plain">לא מתוזמנות</span>':'<span class="badge none">אין</span>'}
-$('#edLyrics').oninput=lyrState;
+$('#edLyrics').oninput=()=>{lyrState();if(draft)draft.lyricsAuto=false};
 let urlT;$('#edUrl').oninput=()=>{clearTimeout(urlT);urlT=setTimeout(async()=>{const id=ytId($('#edUrl').value);if(!id||id===draft.ytId&&$('#edTitle').value)return;draft.ytId=id;
   $('#edThumb').src=`https://i.ytimg.com/vi/${id}/mqdefault.jpg`;$('#edThumb').hidden=false;
   try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));if(r.ok){const j=await r.json();const sp=splitYtTitle(j.title,j.author_name);
-    $('#edTitle').value=sp.title;$('#edArtist').value=sp.artist;}}catch{}},350)};
+    $('#edTitle').value=sp.title;$('#edArtist').value=sp.artist;if(!$('#edLyrics').value.trim())findLyrics()}}catch{}},350)};
 $('#edYtSearch').onclick=()=>{const q=$('#edYtq').value.trim()||($('#edArtist').value+' '+$('#edTitle').value).trim();window.open('https://www.youtube.com/results?search_query='+encodeURIComponent((q+(RTL.test(q)?' קריוקי':' karaoke')).trim()),'_blank','noopener')};
 $('#edYtq').addEventListener('keydown',e=>{if(e.key==='Enter')$('#edYtSearch').click()});
 async function findLyrics(){
@@ -782,10 +787,10 @@ async function findLyrics(){
   lastResults=rankLyrics(res,draftDur).slice(0,8);
   if(!lastResults.length){$('#edResults').innerHTML='<div class="muted">לא נמצאו מילים. בדקו את האיות של שם השיר/המבצע (נסו גם באנגלית), או הדביקו מילים למטה.</div>';return}
   $('#edResults').innerHTML=lastResults.map((r,i)=>`<button class="res" data-r="${i}"><b>${esc(bi(r.trackName))}</b> — ${esc(bi(r.artistName))} <small>· ${fmt(r.duration)} · ${r.syncedLyrics?'✓ מתוזמנות':'לא מתוזמנות'}</small></button>`).join('');
-  if(!$('#edLyrics').value.trim())pickResult(0);
+  if(!$('#edLyrics').value.trim()){pickResult(0);draft.lyricsAuto=true}
 }
 function pickResult(i){const r=lastResults[i];if(!r)return;$('#edLyrics').value=r.syncedLyrics||r.plainLyrics||'';$$('.res').forEach((b,k)=>b.classList.toggle('on',k===i));lyrState()}
-$('#edResults').addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(b)pickResult(+b.dataset.r)});
+$('#edResults').addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(b){pickResult(+b.dataset.r);draft.lyricsAuto=false}});
 $('#edFind').onclick=findLyrics;
 $('#edClear').onclick=()=>{$('#edLyrics').value='';$$('.res').forEach(b=>b.classList.remove('on'));lyrState()};
 $('#edLrc').onchange=async e=>{const f=e.target.files[0];if(f){$('#edLyrics').value=await f.text();lyrState()}e.target.value=''};
@@ -822,7 +827,7 @@ addEventListener('drop',e=>{e.preventDefault();dragN=0;document.body.classList.r
 
 /* ---------------- transport ---------------- */
 function updatePlayBtn(){$('#tPlay').textContent=phase==='playing'&&!P.paused()?'⏸':'▶'}
-function updateTransport(){const s=getSong(now?.songId);$('#vocalGroup').style.display=s&&s.kind==='file'?'':'none';$('#tOff').textContent=((s?.offset||0)>=0?'+':'')+(s?.offset||0).toFixed(1)+' שנ׳'}
+function updateTransport(){const s=getSong(now?.songId);if(!s||s.kind!=='yt')$('#tView').hidden=true;$('#vocalGroup').style.display=s&&s.kind==='file'?'':'none';$('#tOff').textContent=((s?.offset||0)>=0?'+':'')+(s?.offset||0).toFixed(1)+' שנ׳'}
 function togglePlay(){audio();if(phase==='playing'){P.paused()?P.play():P.pause();setTimeout(updatePlayBtn,60)}else if(phase==='ready')startSong(now);else if(phase==='idle'&&Q.length)advance();else if(phase==='applause')advance()}
 $('#tPlay').onclick=togglePlay;
 $('#tRestart').onclick=()=>{if(phase==='playing'){P.seek(0);score.hit=score.total=0}};
@@ -873,11 +878,13 @@ $('#setWipe').onclick=async()=>{if(!confirm('למחוק את כל השירים �
 const vz=$('#viz'),vc=vz.getContext('2d'),cf=$('#confetti'),cc=cf.getContext('2d');let fbuf=null,parts=[];
 function sizeViz(){const d=devicePixelRatio||1;vz.width=vz.clientWidth*d;vz.height=vz.clientHeight*d;cf.width=innerWidth*d;cf.height=innerHeight*d}
 addEventListener('resize',()=>{sizeViz();Lyr.place(Lyr.anchor<0?0:Lyr.anchor)});
-function drawViz(){const W=vz.width,H=vz.height;vc.clearRect(0,0,W,H);if(!ctx||P.kind!=='file'||$('#screen').className!=='audio')return;
-  if(!fbuf)fbuf=new Uint8Array(G.an.frequencyBinCount);G.an.getByteFrequencyData(fbuf);
-  const n=48,bw=W/n,gr=vc.createLinearGradient(0,H,0,0);gr.addColorStop(0,'#ff4fa3');gr.addColorStop(.6,'#b84dff');gr.addColorStop(1,'#3fe0ff');vc.fillStyle=gr;
-  for(let i=0;i<n;i++){const k=Math.floor(Math.pow(i/n,1.4)*fbuf.length*.85),v=fbuf[k]/255,h=Math.max(2,v*v*H);const x=i*bw;
-    vc.globalAlpha=.35+v*.5;vc.beginPath();vc.roundRect?vc.roundRect(x+bw*.18,H-h,bw*.64,h,bw*.3):vc.rect(x+bw*.18,H-h,bw*.64,h);vc.fill()}vc.globalAlpha=1}
+function drawViz(){const W=vz.width,H=vz.height;vc.clearRect(0,0,W,H);const m=$('#screen').className,n=48;let val;
+  if(ctx&&P.kind==='file'&&m==='audio'){if(!fbuf)fbuf=new Uint8Array(G.an.frequencyBinCount);G.an.getByteFrequencyData(fbuf);val=i=>fbuf[Math.floor(Math.pow(i/n,1.4)*fbuf.length*.85)]/255}
+  else if(P.kind==='yt'&&m==='ytl'&&phase==='playing'&&!P.paused()){const t=performance.now()/1000,beat=Math.pow(Math.max(0,Math.sin(t*Math.PI*2.1)),6);
+    val=i=>clamp((.5+.25*Math.sin(t*2.3+i*.55)*Math.sin(t*1.1+i*.23)+.15*Math.sin(t*6.1+i*1.9)+.22*beat)*(1-i/n*.55),0,1)}
+  else return;
+  const bw=W/n,gr=vc.createLinearGradient(0,H,0,0);gr.addColorStop(0,'#ff4fa3');gr.addColorStop(.6,'#b84dff');gr.addColorStop(1,'#3fe0ff');vc.fillStyle=gr;
+  for(let i=0;i<n;i++){const v=val(i),h=Math.max(2,v*v*H),x=i*bw;vc.globalAlpha=.35+v*.5;vc.beginPath();vc.roundRect?vc.roundRect(x+bw*.18,H-h,bw*.64,h,bw*.3):vc.rect(x+bw*.18,H-h,bw*.64,h);vc.fill()}vc.globalAlpha=1}
 function confetti(n=180){const d=devicePixelRatio||1,cols=['#ff4fa3','#ffd23f','#3fe0ff','#4ade80','#b84dff','#ffffff'];
   for(let i=0;i<n;i++)parts.push({x:Math.random()*cf.width,y:-Math.random()*cf.height*.6-20,vx:(Math.random()-.5)*3*d,vy:(2+Math.random()*4)*d,s:(5+Math.random()*7)*d,c:cols[i%cols.length],r:Math.random()*6,vr:(Math.random()-.5)*.3})}
 function drawConfetti(){if(!parts.length&&!cc._dirty)return;cc.clearRect(0,0,cf.width,cf.height);cc._dirty=parts.length>0;
@@ -900,6 +907,25 @@ function frame(ts){
 }
 
 /* ---------------- start ---------------- */
+/* ---------------- YouTube: find lyrics and pick the version that matches the video length ---------------- */
+async function ytAutoLyrics(song,my){
+  const has=(song.lyricsText||'').trim();
+  if(has&&(!song.lyricsAuto||song.lyricsChecked))return;   // typed in by hand, or already matched to this video
+  if(!has&&song.lyricsTried)return;                        // looked before and found nothing
+  const res=await searchLyrics(song.title,song.artist);
+  if(res===null)return;                                    // offline: try again next time
+  let dur=0;for(let i=0;i<25&&my===token&&!(dur=ytPlayer?.getDuration?.()||0);i++)await new Promise(r=>setTimeout(r,300));
+  song.lyricsTried=true;
+  if(res.length){const txt=bestLyrics(res,dur);if(txt){song.lyricsText=txt;song.lyricsAuto=true}song.lyricsChecked=!!dur}
+  await saveSong(song);
+  if(my!==token||now?.songId!==song.id)return;
+  if(lyricKind(song.lyricsText)!=='none'){if(song.view!=='video')setMode('ytl');Lyr.load(song.lyricsText,song)}
+}
+$('#tView').onclick=()=>{const s=getSong(now?.songId);if(!s||s.kind!=='yt'||phase!=='playing')return;
+  const toVideo=$('#screen').className==='ytl';
+  if(!toVideo&&lyricKind(s.lyricsText)==='none'){toast('לא נמצאו מילים לשיר הזה — אפשר להוסיף אותן עם ✎ בלשונית שירים');return}
+  s.view=toVideo?'video':'lyrics';setMode(toVideo?'yt':'ytl');Lyr.load(s.lyricsText,s);clearTimeout(s._t);s._t=setTimeout(()=>saveSong(s),300)};
+
 /* ---------------- phones: laptop side ---------------- */
 const PEERJS='https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js',QRLIB='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
 const PUBLIC_URL='https://nadavweidman.github.io/karaoke/';
@@ -946,6 +972,7 @@ async function hostMsg(c,d){
     let song=LIB.find(x=>x.kind==='yt'&&x.ytId===id);
     if(!song){song={id:uid(),kind:'yt',ytId:id,title:'סרטון מיוטיוב',artist:'',lyricsText:'',offset:0,added:Date.now()};
       try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));if(r.ok){const j=await r.json();const sp=splitYtTitle(j.title,j.author_name);song.title=sp.title||song.title;song.artist=sp.artist}}catch{}
+      const lr=await searchLyrics(song.title,song.artist);if(lr&&lr.length){song.lyricsText=bestLyrics(lr,0);song.lyricsAuto=true}
       await saveSong(song)}
     queuePush(song,singer,by);c.send({t:'ok',msg:`🎤 "${songTitle(song)}" נוסף לתור! מקום ${Q.length}`});toast(`📱 ${esc(bi(singer))} בתור עם "${esc(songTitle(song))}"`)}
   else if(d.t==='rm'){const i=Q.findIndex(q=>q.qid===d.qid&&q.by&&q.by===by);if(i>=0){Q.splice(i,1);saveQ();renderQueue();c.send({t:'ok',msg:'הוסר מהתור'})}}
