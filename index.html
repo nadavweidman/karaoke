@@ -320,7 +320,7 @@ html.guestmode,body.guest{overflow:auto;height:auto}
   </div>
   <div id="edResults"></div>
   <textarea id="edLyrics" rows="7" placeholder="הדביקו כאן את המילים. מילים עם זמנים (בפורמט LRC) מתקדמות יחד עם המוזיקה. גם טקסט רגיל עובד."></textarea>
-  <p class="tip" id="edYtTip">המילים נמצאות אוטומטית ומוצגות במסך המילים הגדול, והסרטון מתנגן בחלון קטן בפינה. אם אין מילים מתוזמנות, הסרטון יוצג במסך מלא.</p>
+  <p class="tip" id="edYtTip">הסרטון מוצג במסך מלא — בסרטוני קריוקי המילים כבר מופיעות ומסונכרנות. אפשר לעבור למסך המילים הגדול עם הכפתור "🎤 מסך מילים" בזמן השיר, אבל המילים שנמצאות ברשת לא תמיד מתאימות לגרסת הקריוקי.</p>
   <div id="edVocalRow"><label>הנמכת קול הזמר: <span id="edVocalVal"></span><input type="range" id="edVocal" min="0" max="1" step="0.05"></label>
   <p class="tip">מנמיך את מה שנמצא במרכז ההקלטה — בדרך כלל זה הזמר. בחלק מהשירים זה עובד מעולה ובחלק פחות, ואפשר לכוונן תוך כדי השיר.</p></div>
   <div class="row end">
@@ -626,10 +626,10 @@ async function startSong(entry){
   if(!song)return advance();
   setPhase('playing');score.hit=score.total=0;
   $('#np').innerHTML=`<span class="pill">🎤 <b>${esc(bi(entry.singer))}</b> · ${esc(songTitle(song))}</span>`+(Q[0]?`<span class="pill">הבא בתור: ${esc(bi(Q[0].singer))}</span>`:'');
-  if(song.kind==='yt'&&lyricKind(song.lyricsText)!=='none')showSyncHint(song);
+  if(song.kind==='yt'&&song.lyricsView===true&&lyricKind(song.lyricsText)!=='none')showSyncHint(song);
   audio();updateTransport();
   if(song.kind==='yt'){
-    setMode(lyricKind(song.lyricsText)!=='none'&&song.view!=='video'?'ytl':'yt');Lyr.load(song.lyricsText,song);P.kind='yt';ytLast={raw:-1,t:0,at:0};
+    {const lv=song.lyricsView===true&&lyricKind(song.lyricsText)!=='none';setMode(lv?'ytl':'yt');Lyr.load(lv?song.lyricsText:'',song)}P.kind='yt';ytLast={raw:-1,t:0,at:0};
     try{await ensureYT()}catch{toast('אין חיבור ליוטיוב — בדקו את האינטרנט.');return}
     if(my!==token)return;
     if(!ytPlayer){ytPlayer=new YT.Player('yt',{width:'100%',height:'100%',videoId:song.ytId,
@@ -932,12 +932,12 @@ async function ytAutoLyrics(song,my){
   if(res.length){const txt=bestLyrics(res,dur);if(txt){song.lyricsText=txt;song.lyricsAuto=true}song.lyricsChecked=!!dur}
   await saveSong(song);
   if(my!==token||now?.songId!==song.id)return;
-  if(lyricKind(song.lyricsText)!=='none'){if(song.view!=='video')setMode('ytl');Lyr.load(song.lyricsText,song);showSyncHint(song)}
+  if(lyricKind(song.lyricsText)!=='none'&&song.lyricsView===true){setMode('ytl');Lyr.load(song.lyricsText,song);showSyncHint(song)}
 }
 $('#tView').onclick=()=>{const s=getSong(now?.songId);if(!s||s.kind!=='yt'||phase!=='playing')return;
   const toVideo=$('#screen').className==='ytl';
   if(!toVideo&&lyricKind(s.lyricsText)==='none'){toast('לא נמצאו מילים לשיר הזה — אפשר להוסיף אותן עם ✎ בלשונית שירים');return}
-  s.view=toVideo?'video':'lyrics';setMode(toVideo?'yt':'ytl');Lyr.load(s.lyricsText,s);clearTimeout(s._t);s._t=setTimeout(()=>saveSong(s),300)};
+  s.lyricsView=!toVideo;setMode(toVideo?'yt':'ytl');Lyr.load(toVideo?'':s.lyricsText,s);if(!toVideo)showSyncHint(s);else $('#syncHint')?.remove();clearTimeout(s._t);s._t=setTimeout(()=>saveSong(s),300)};
 
 /* ---------------- YouTube: can this video play outside YouTube? ---------------- */
 async function ytInfo(id){try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));return r.ok?{ok:true,j:await r.json()}:{ok:false,status:r.status}}catch{return {ok:false,status:0}}}
