@@ -768,7 +768,7 @@ function splitYtTitle(t,author){t=cleanQuery(t).replace(/^[\s\-–—|:]+|[\s\-�
 function probeDuration(blob){return new Promise(res=>{const a=document.createElement('audio'),u=URL.createObjectURL(blob);let done=false;
   const fin=d=>{if(done)return;done=true;URL.revokeObjectURL(u);res(isFinite(d)?d:0)};a.preload='metadata';a.onloadedmetadata=()=>fin(a.duration);a.onerror=()=>fin(0);a.src=u;setTimeout(()=>fin(0),6000)})}
 function openEditor(s,isNew){
-  draft=s;$('#edYtStatus').textContent='';$('#edYtStatus').className='tip';if(s.blocked){$('#edYtStatus').className='tip bad';$('#edYtStatus').textContent='⚠️ בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו סרטון אחר — ערוצי קריוקי כמו Sing King או KaraFun בדרך כלל עובדים.'}draftNew=isNew;draftDur=0;lastResults=[];
+  draft=s;$('#edYtStatus').textContent='';$('#edYtStatus').className='tip';if(s.blocked){$('#edYtStatus').className='tip bad';$('#edYtStatus').textContent='⚠️ בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו גרסת קריוקי מערוץ אחר — בשירים חדשים, ערוצים קטנים יותר בדרך כלל עובדים.'}draftNew=isNew;draftDur=0;lastResults=[];
   $('#edHead').textContent=isNew?(s.kind==='yt'?'הוספת סרטון מיוטיוב':'הוספת קובץ מוזיקה'):'עריכת שיר';
   $('#edYT').hidden=s.kind!=='yt';$('#edFile').hidden=s.kind!=='file';$('#edYtTip').hidden=s.kind!=='yt';$('#edVocalRow').hidden=s.kind!=='file';
   $('#edUrl').value=s.ytId?'https://www.youtube.com/watch?v='+s.ytId:'';$('#edYtq').value='';
@@ -787,7 +787,7 @@ let urlT;$('#edUrl').oninput=()=>{clearTimeout(urlT);urlT=setTimeout(async()=>{c
   const st=$('#edYtStatus');st.className='tip';st.textContent='⏳ בודק שהסרטון מתנגן מחוץ ליוטיוב…';draft.blocked=false;
   const c=await ytCheck(id);if(draft.ytId!==id)return;
   if(c.j){const sp=splitYtTitle(c.j.title,c.j.author_name);$('#edTitle').value=sp.title;$('#edArtist').value=sp.artist}
-  if(c.state==='blocked'||c.state==='missing'){draft.blocked=true;st.className='tip bad';st.textContent='⚠️ '+(c.state==='missing'?'הסרטון לא נמצא (אולי הוא פרטי או שנמחק). נסו קישור אחר.':'בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו סרטון אחר — ערוצי קריוקי כמו Sing King או KaraFun בדרך כלל עובדים.')}
+  if(c.state==='blocked'||c.state==='missing'){draft.blocked=true;st.className='tip bad';st.textContent='⚠️ '+(c.state==='missing'?'הסרטון לא נמצא (אולי הוא פרטי או שנמחק). נסו קישור אחר.':'בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו גרסת קריוקי מערוץ אחר — בשירים חדשים, ערוצים קטנים יותר בדרך כלל עובדים.')}
   else{draft.playChecked=c.state==='ok';st.className='tip'+(c.state==='ok'?' ok':'');st.textContent=c.state==='ok'?'✓ הסרטון מתנגן כאן':'';if(!$('#edLyrics').value.trim())findLyrics()}},350)};
 $('#edYtSearch').onclick=()=>{const q=$('#edYtq').value.trim()||($('#edArtist').value+' '+$('#edTitle').value).trim();window.open('https://www.youtube.com/results?search_query='+encodeURIComponent((q+(RTL.test(q)?' קריוקי':' karaoke')).trim()),'_blank','noopener')};
 $('#edYtq').addEventListener('keydown',e=>{if(e.key==='Enter')$('#edYtSearch').click()});
@@ -1018,10 +1018,10 @@ async function hostMsg(c,d){
     queuePush(song,singer,by);c.send({t:'ok',msg:`🎤 נוספת לתור! מקום ${Q.length}`});toast(`📱 ${esc(bi(singer))} בתור עם "${esc(songTitle(song))}"`)}
   else if(d.t==='addYT'){const id=ytId(String(d.url||'').slice(0,400));if(!id)return c.send({t:'err',msg:'זה לא נראה כמו קישור ליוטיוב'});
     let song=LIB.find(x=>x.kind==='yt'&&x.ytId===id);
-    if(song&&song.blocked)return c.send({t:'err',msg:'בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו סרטון אחר — ערוצי קריוקי כמו Sing King או KaraFun בדרך כלל עובדים.'});
+    if(song&&song.blocked)return c.send({t:'err',msg:'בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו גרסת קריוקי מערוץ אחר — בשירים חדשים, ערוצים קטנים יותר בדרך כלל עובדים.'});
     if(!song){c.send({t:'ok',msg:'⏳ בודק את הסרטון…'});
       const chk=await ytCheck(id);
-      if(chk.state==='blocked')return c.send({t:'err',msg:'בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו סרטון אחר — ערוצי קריוקי כמו Sing King או KaraFun בדרך כלל עובדים.'});
+      if(chk.state==='blocked')return c.send({t:'err',msg:'בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו גרסת קריוקי מערוץ אחר — בשירים חדשים, ערוצים קטנים יותר בדרך כלל עובדים.'});
       if(chk.state==='missing')return c.send({t:'err',msg:'הסרטון לא נמצא (אולי הוא פרטי או שנמחק). נסו קישור אחר.'});
       song={id:uid(),kind:'yt',ytId:id,title:'סרטון מיוטיוב',artist:'',lyricsText:'',offset:0,added:Date.now(),playChecked:chk.state==='ok'};
       if(chk.j){const sp=splitYtTitle(chk.j.title,chk.j.author_name);song.title=sp.title||song.title;song.artist=sp.artist}
