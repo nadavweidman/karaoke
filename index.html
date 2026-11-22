@@ -51,6 +51,12 @@ button:disabled{opacity:.4;cursor:default}
 .line.next{opacity:.85}
 .line.active{font-size:calc(var(--lyr)*clamp(28px,4.6vw,78px));opacity:1;filter:drop-shadow(0 4px 22px rgba(255,79,163,.5))}
 .line.done{opacity:.28}
+.line{pointer-events:auto;cursor:pointer}
+.line:hover{opacity:.95}
+.badge.bad{background:rgba(255,107,107,.15);color:var(--red)}
+#edYtStatus{min-height:1.2em}
+#edYtStatus.bad{color:var(--red);font-weight:500}
+#edYtStatus.ok{color:var(--green)}
 .line .w{background-image:linear-gradient(90deg,var(--hi) var(--p,0%),#fff var(--p,0%));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .line.rtl .w{background-image:linear-gradient(270deg,var(--hi) var(--p,0%),#fff var(--p,0%))}
 .line.inst{color:var(--muted);letter-spacing:.3em}
@@ -299,6 +305,7 @@ html.guestmode,body.guest{overflow:auto;height:auto}
     <div class="row"><input id="edYtq" placeholder="שיר לחיפוש, למשל: ירושלים של זהב" style="flex:1;width:auto"><button class="btn" id="edYtSearch">חיפוש ביוטיוב ↗</button></div>
     <p class="tip">החיפוש נפתח ביוטיוב, עם המילה "קריוקי". בחרו סרטון, העתיקו את הקישור משורת הכתובת והדביקו אותו למעלה.</p>
     <img id="edThumb" alt="" hidden>
+    <p class="tip" id="edYtStatus"></p>
   </div>
   <div id="edFile"><div class="filechip" id="edFileName"></div></div>
   <div class="grid2">
@@ -619,6 +626,7 @@ async function startSong(entry){
   if(!song)return advance();
   setPhase('playing');score.hit=score.total=0;
   $('#np').innerHTML=`<span class="pill">🎤 <b>${esc(bi(entry.singer))}</b> · ${esc(songTitle(song))}</span>`+(Q[0]?`<span class="pill">הבא בתור: ${esc(bi(Q[0].singer))}</span>`:'');
+  if(song.kind==='yt'&&lyricKind(song.lyricsText)!=='none')showSyncHint(song);
   audio();updateTransport();
   if(song.kind==='yt'){
     setMode(lyricKind(song.lyricsText)!=='none'&&song.view!=='video'?'ytl':'yt');Lyr.load(song.lyricsText,song);P.kind='yt';ytLast={raw:-1,t:0,at:0};
@@ -628,7 +636,8 @@ async function startSong(entry){
       playerVars:{autoplay:1,controls:1,rel:0,playsinline:1,modestbranding:1,iv_load_policy:3,origin:location.origin},
       events:{onReady:e=>{e.target.setVolume(Math.round(S.volume*100));if(P.kind==='yt')e.target.playVideo()},
         onStateChange:e=>{updatePlayBtn();if(e.data===0&&P.kind==='yt'&&phase==='playing')songEnded()},
-        onError:e=>{if(P.kind!=='yt')return;toast(e.data===101||e.data===150?'בעלי הסרטון לא מאפשרים לנגן אותו מחוץ ליוטיוב. נסו סרטון אחר.':'יוטיוב לא הצליח לנגן את הסרטון.',6000);advTimer=setTimeout(advance,3500)}}})}
+        onError:e=>{if(P.kind!=='yt')return;const bs=getSong(now?.songId),blk=[100,101,150,153].includes(e.data);if(bs&&blk){bs.blocked=true;bs.playChecked=true;saveSong(bs)}
+          toast(blk?'⚠️ הסרטון הזה חסום לניגון מחוץ ליוטיוב — מדלגים לשיר הבא. אפשר להחליף אותו בקישור אחר עם ✎ בלשונית שירים.':'יוטיוב לא הצליח לנגן את הסרטון — מדלגים.',7000);advTimer=setTimeout(advance,2500)}}})}
     else{ytPlayer.loadVideoById(song.ytId);ytPlayer.setVolume(Math.round(S.volume*100))}
     ytAutoLyrics(song,my);
   }else{
@@ -720,7 +729,7 @@ function renderLib(){
   const f=$('#libSearch').value.trim().toLowerCase();
   const list=LIB.filter(s=>!f||(s.title+' '+(s.artist||'')).toLowerCase().includes(f));
   $('#libList').innerHTML=list.map(s=>{const k=s.kind==='builtin'?'synced':lyricKind(s.lyricsText);
-    const badge=s.kind==='yt'&&k==='none'?'':`<span class="badge ${k==='synced'?'':k}">${k==='synced'?'מילים מתוזמנות':k==='plain'?'מילים (לא מתוזמנות)':'אין מילים'}</span>`;
+    const badge=s.kind==='yt'&&s.blocked?'<span class="badge bad">חסום ביוטיוב</span>':s.kind==='yt'&&k==='none'?'':`<span class="badge ${k==='synced'?'':k}">${k==='synced'?'מילים מתוזמנות':k==='plain'?'מילים (לא מתוזמנות)':'אין מילים'}</span>`;
     return `<div class="item"><div class="ic">${s.kind==='builtin'?'🎂':s.kind==='yt'?'📺':'🎵'}</div>
     <div class="meta"><div class="t">${esc(songTitle(s))}</div><div class="s">${esc(bi(s.artist||(s.kind==='yt'?'יוטיוב':'')))} ${badge}</div></div>
     <div class="acts"><button class="btn sm primary" data-l="q" data-id="${s.id}" title="הוספה לתור">＋</button>${s.builtin?'':`<button class="ib" data-l="ed" data-id="${s.id}" title="עריכה / מילים">✎</button><button class="ib" data-l="rm" data-id="${s.id}" title="מחיקה">🗑</button>`}</div></div>`}).join('')
@@ -737,7 +746,7 @@ async function saveSong(s){const rec={...s};delete rec.builtin;await DB.put(rec)
 
 /* who is singing */
 let whoSongRef=null;
-function askSinger(song){whoSongRef=song;$('#whoSong').textContent=songTitle(song)+(song.artist?' — '+bi(song.artist):'');
+function askSinger(song){if(song.blocked){toast('⚠️ הסרטון הזה חסום לניגון מחוץ ליוטיוב. לחצו ✎ כדי להחליף אותו בקישור אחר.',6000);return}whoSongRef=song;$('#whoSong').textContent=songTitle(song)+(song.artist?' — '+bi(song.artist):'');
   $('#whoChips').innerHTML=singers.slice(0,16).map(n=>`<button class="chip" data-n="${esc(n)}">${esc(n)}</button>`).join('')+`<button class="chip" data-n="כולם">כולם 🎉</button>`;
   $('#whoName').value='';$('#who').classList.add('on');setTimeout(()=>$('#whoName').focus(),30)}
 function queuePush(song,singer,by){singer=(singer||'').trim()||'כולם';
@@ -759,7 +768,7 @@ function splitYtTitle(t,author){t=cleanQuery(t).replace(/^[\s\-–—|:]+|[\s\-�
 function probeDuration(blob){return new Promise(res=>{const a=document.createElement('audio'),u=URL.createObjectURL(blob);let done=false;
   const fin=d=>{if(done)return;done=true;URL.revokeObjectURL(u);res(isFinite(d)?d:0)};a.preload='metadata';a.onloadedmetadata=()=>fin(a.duration);a.onerror=()=>fin(0);a.src=u;setTimeout(()=>fin(0),6000)})}
 function openEditor(s,isNew){
-  draft=s;draftNew=isNew;draftDur=0;lastResults=[];
+  draft=s;$('#edYtStatus').textContent='';$('#edYtStatus').className='tip';if(s.blocked){$('#edYtStatus').className='tip bad';$('#edYtStatus').textContent='⚠️ בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו סרטון אחר — ערוצי קריוקי כמו Sing King או KaraFun בדרך כלל עובדים.'}draftNew=isNew;draftDur=0;lastResults=[];
   $('#edHead').textContent=isNew?(s.kind==='yt'?'הוספת סרטון מיוטיוב':'הוספת קובץ מוזיקה'):'עריכת שיר';
   $('#edYT').hidden=s.kind!=='yt';$('#edFile').hidden=s.kind!=='file';$('#edYtTip').hidden=s.kind!=='yt';$('#edVocalRow').hidden=s.kind!=='file';
   $('#edUrl').value=s.ytId?'https://www.youtube.com/watch?v='+s.ytId:'';$('#edYtq').value='';
@@ -773,10 +782,13 @@ function openEditor(s,isNew){
 }
 function lyrState(){const k=lyricKind($('#edLyrics').value);$('#edLyrState').innerHTML=k==='synced'?'<span class="badge">מתוזמנות ✓</span>':k==='plain'?'<span class="badge plain">לא מתוזמנות</span>':'<span class="badge none">אין</span>'}
 $('#edLyrics').oninput=()=>{lyrState();if(draft)draft.lyricsAuto=false};
-let urlT;$('#edUrl').oninput=()=>{clearTimeout(urlT);urlT=setTimeout(async()=>{const id=ytId($('#edUrl').value);if(!id||id===draft.ytId&&$('#edTitle').value)return;draft.ytId=id;
+let urlT;$('#edUrl').oninput=()=>{clearTimeout(urlT);urlT=setTimeout(async()=>{const id=ytId($('#edUrl').value);if(!id||id===draft.ytId&&draft._checked)return;draft.ytId=id;draft._checked=true;
   $('#edThumb').src=`https://i.ytimg.com/vi/${id}/mqdefault.jpg`;$('#edThumb').hidden=false;
-  try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));if(r.ok){const j=await r.json();const sp=splitYtTitle(j.title,j.author_name);
-    $('#edTitle').value=sp.title;$('#edArtist').value=sp.artist;if(!$('#edLyrics').value.trim())findLyrics()}}catch{}},350)};
+  const st=$('#edYtStatus');st.className='tip';st.textContent='⏳ בודק שהסרטון מתנגן מחוץ ליוטיוב…';draft.blocked=false;
+  const c=await ytCheck(id);if(draft.ytId!==id)return;
+  if(c.j){const sp=splitYtTitle(c.j.title,c.j.author_name);$('#edTitle').value=sp.title;$('#edArtist').value=sp.artist}
+  if(c.state==='blocked'||c.state==='missing'){draft.blocked=true;st.className='tip bad';st.textContent='⚠️ '+(c.state==='missing'?'הסרטון לא נמצא (אולי הוא פרטי או שנמחק). נסו קישור אחר.':'בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו סרטון אחר — ערוצי קריוקי כמו Sing King או KaraFun בדרך כלל עובדים.')}
+  else{draft.playChecked=c.state==='ok';st.className='tip'+(c.state==='ok'?' ok':'');st.textContent=c.state==='ok'?'✓ הסרטון מתנגן כאן':'';if(!$('#edLyrics').value.trim())findLyrics()}},350)};
 $('#edYtSearch').onclick=()=>{const q=$('#edYtq').value.trim()||($('#edArtist').value+' '+$('#edTitle').value).trim();window.open('https://www.youtube.com/results?search_query='+encodeURIComponent((q+(RTL.test(q)?' קריוקי':' karaoke')).trim()),'_blank','noopener')};
 $('#edYtq').addEventListener('keydown',e=>{if(e.key==='Enter')$('#edYtSearch').click()});
 async function findLyrics(){
@@ -797,7 +809,8 @@ $('#edLrc').onchange=async e=>{const f=e.target.files[0];if(f){$('#edLyrics').va
 $('#edVocal').oninput=()=>$('#edVocalVal').textContent=Math.round($('#edVocal').value*100)+'%';
 $('#edCancel').onclick=()=>$('#editor').classList.remove('on');
 async function edCommit(queue){
-  if(draft.kind==='yt'){const id=ytId($('#edUrl').value);if(!id){toast('הדביקו קודם קישור מיוטיוב');return}draft.ytId=id}
+  if(draft.kind==='yt'){const id=ytId($('#edUrl').value);if(!id){toast('הדביקו קודם קישור מיוטיוב');return}if(draft.blocked){toast('⚠️ הסרטון הזה לא יתנגן כאן — הדביקו קישור לסרטון אחר.',5000);return}draft.ytId=id}
+  delete draft._checked;
   draft.title=$('#edTitle').value.trim()||draft.fileName||'ללא שם';draft.artist=$('#edArtist').value.trim();
   draft.lyricsText=$('#edLyrics').value;if(draft.kind==='file')draft.vocalCut=+$('#edVocal').value;
   draft.offset=draft.offset||0;draft.added=draft.added||Date.now();
@@ -919,12 +932,47 @@ async function ytAutoLyrics(song,my){
   if(res.length){const txt=bestLyrics(res,dur);if(txt){song.lyricsText=txt;song.lyricsAuto=true}song.lyricsChecked=!!dur}
   await saveSong(song);
   if(my!==token||now?.songId!==song.id)return;
-  if(lyricKind(song.lyricsText)!=='none'){if(song.view!=='video')setMode('ytl');Lyr.load(song.lyricsText,song)}
+  if(lyricKind(song.lyricsText)!=='none'){if(song.view!=='video')setMode('ytl');Lyr.load(song.lyricsText,song);showSyncHint(song)}
 }
 $('#tView').onclick=()=>{const s=getSong(now?.songId);if(!s||s.kind!=='yt'||phase!=='playing')return;
   const toVideo=$('#screen').className==='ytl';
   if(!toVideo&&lyricKind(s.lyricsText)==='none'){toast('לא נמצאו מילים לשיר הזה — אפשר להוסיף אותן עם ✎ בלשונית שירים');return}
   s.view=toVideo?'video':'lyrics';setMode(toVideo?'yt':'ytl');Lyr.load(s.lyricsText,s);clearTimeout(s._t);s._t=setTimeout(()=>saveSong(s),300)};
+
+/* ---------------- YouTube: can this video play outside YouTube? ---------------- */
+async function ytInfo(id){try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));return r.ok?{ok:true,j:await r.json()}:{ok:false,status:r.status}}catch{return {ok:false,status:0}}}
+function ytProbe(id){return new Promise(async res=>{
+  try{await ensureYT()}catch{return res('unknown')}
+  const host=document.createElement('div');host.style.cssText='position:fixed;left:-10000px;top:0;width:320px;height:200px;pointer-events:none';
+  const inner=document.createElement('div');host.appendChild(inner);document.body.appendChild(host);
+  let done=false,pl=null;const fin=v=>{if(done)return;done=true;clearTimeout(to);try{pl&&pl.destroy()}catch{}host.remove();res(v)};
+  const to=setTimeout(()=>fin('unknown'),10000);
+  pl=new YT.Player(inner,{width:320,height:200,videoId:id,playerVars:{autoplay:1,mute:1,controls:0,playsinline:1,origin:location.origin},
+    events:{onReady:e=>{e.target.mute();e.target.playVideo()},onStateChange:e=>{if(e.data===1)fin('ok')},
+      onError:e=>fin(e.data===100?'missing':[101,150,153].includes(e.data)?'blocked':'unknown')}});
+})}
+async function ytCheck(id){const i=await ytInfo(id);
+  if(!i.ok&&(i.status===401||i.status===403))return {state:'blocked'};
+  if(!i.ok&&(i.status===400||i.status===404))return {state:'missing'};
+  return {state:await ytProbe(id),j:i.j}}
+async function checkLibrary(){
+  for(const s of LIB.filter(x=>x.kind==='yt'&&!x.playChecked)){
+    const c=await ytCheck(s.ytId);if(c.state==='unknown')continue;
+    s.blocked=c.state!=='ok';s.playChecked=true;await saveSong(s);
+  }
+}
+
+/* ---------------- sync: click the line you hear being sung ---------------- */
+function showSyncHint(song){if(song.userSynced||$('#syncHint'))return;
+  $('#np').insertAdjacentHTML('beforeend','<span class="pill" id="syncHint">💡 המילים לא בסנכרון? לחצו על השורה ששרים עכשיו</span>');
+  setTimeout(()=>$('#syncHint')?.remove(),30000)}
+$('#lyrics-inner').addEventListener('click',e=>{
+  const el=e.target.closest('.line');if(!el||phase!=='playing'||Lyr.mode!=='synced')return;
+  const L=Lyr.lines.find(l=>l.el===el),s=getSong(now?.songId);if(!L||!s)return;
+  if(s.builtin){toast('השיר המובנה כבר מסונכרן 🙂',2000);return}
+  s.offset=Math.round((L.t-(P.time()-0.25))*10)/10;s.userSynced=true;Lyr.idx=-2;updateTransport();
+  $('#syncHint')?.remove();clearTimeout(s._t);s._t=setTimeout(()=>saveSong(s),300);
+  toast('🎯 סונכרן! אפשר לדייק עם − / + ליד "תזמון מילים"',3000)});
 
 /* ---------------- phones: laptop side ---------------- */
 const PEERJS='https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js',QRLIB='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
@@ -936,7 +984,7 @@ const joinURL=()=>(isLocalHost()?PUBLIC_URL:location.origin+location.pathname)+'
 const R={peer:null,conns:new Set(),open:false,tries:0,qr:'',timer:null};
 function remoteChanged(){if(!R.conns.size)return;clearTimeout(R.timer);R.timer=setTimeout(()=>{const st=hostState();R.conns.forEach(c=>{if(c.open)try{c.send(st)}catch{}})},150)}
 function hostState(){return {t:'state',banner:S.banner,
-  lib:LIB.map(x=>({id:x.id,title:songTitle(x),artist:x.artist?bi(x.artist):'',kind:x.kind})),
+  lib:LIB.filter(x=>!x.blocked).map(x=>({id:x.id,title:songTitle(x),artist:x.artist?bi(x.artist):'',kind:x.kind})),
   queue:Q.map(q=>({qid:q.qid,singer:bi(q.singer),title:songTitle(getSong(q.songId)),by:q.by||null})),
   now:now&&phase!=='idle'?{singer:bi(now.singer),title:songTitle(getSong(now.songId)),phase}:null}}
 async function hostStart(){
@@ -970,8 +1018,13 @@ async function hostMsg(c,d){
     queuePush(song,singer,by);c.send({t:'ok',msg:`🎤 נוספת לתור! מקום ${Q.length}`});toast(`📱 ${esc(bi(singer))} בתור עם "${esc(songTitle(song))}"`)}
   else if(d.t==='addYT'){const id=ytId(String(d.url||'').slice(0,400));if(!id)return c.send({t:'err',msg:'זה לא נראה כמו קישור ליוטיוב'});
     let song=LIB.find(x=>x.kind==='yt'&&x.ytId===id);
-    if(!song){song={id:uid(),kind:'yt',ytId:id,title:'סרטון מיוטיוב',artist:'',lyricsText:'',offset:0,added:Date.now()};
-      try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));if(r.ok){const j=await r.json();const sp=splitYtTitle(j.title,j.author_name);song.title=sp.title||song.title;song.artist=sp.artist}}catch{}
+    if(song&&song.blocked)return c.send({t:'err',msg:'בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו סרטון אחר — ערוצי קריוקי כמו Sing King או KaraFun בדרך כלל עובדים.'});
+    if(!song){c.send({t:'ok',msg:'⏳ בודק את הסרטון…'});
+      const chk=await ytCheck(id);
+      if(chk.state==='blocked')return c.send({t:'err',msg:'בעלי הסרטון חסמו את הניגון שלו מחוץ ליוטיוב. נסו סרטון אחר — ערוצי קריוקי כמו Sing King או KaraFun בדרך כלל עובדים.'});
+      if(chk.state==='missing')return c.send({t:'err',msg:'הסרטון לא נמצא (אולי הוא פרטי או שנמחק). נסו קישור אחר.'});
+      song={id:uid(),kind:'yt',ytId:id,title:'סרטון מיוטיוב',artist:'',lyricsText:'',offset:0,added:Date.now(),playChecked:chk.state==='ok'};
+      if(chk.j){const sp=splitYtTitle(chk.j.title,chk.j.author_name);song.title=sp.title||song.title;song.artist=sp.artist}
       const lr=await searchLyrics(song.title,song.artist);if(lr&&lr.length){song.lyricsText=bestLyrics(lr,0);song.lyricsAuto=true}
       await saveSong(song)}
     queuePush(song,singer,by);c.send({t:'ok',msg:`🎤 "${songTitle(song)}" נוסף לתור! מקום ${Q.length}`});toast(`📱 ${esc(bi(singer))} בתור עם "${esc(songTitle(song))}"`)}
@@ -1065,6 +1118,7 @@ function guestInit(){
   const saved=(await DB.all().catch(()=>[]))||[];saved.sort((a,b)=>(b.added||0)-(a.added||0));LIB=[BUILTIN,BUILTIN_EN,...saved];
   Q=Q.filter(q=>getSong(q.songId));saveQ();
   renderLib();setPhase('idle');updateTransport();requestAnimationFrame(frame);
+  setTimeout(checkLibrary,2500);
   setTimeout(()=>confetti(120),400);
   renderPhones();if(S.phones)hostStart();
   if(location.protocol==='file:')toast('טיפ: פתחו דרך "Start Karaoke.command" כדי שיוטיוב והמיקרופון יעבדו כמו שצריך.',7000);
