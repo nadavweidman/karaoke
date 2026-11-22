@@ -69,7 +69,7 @@ button:disabled{opacity:.4;cursor:default}
 .ov{max-width:1000px}
 .cake{font-size:clamp(56px,9vw,130px);animation:bob 2.4s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-12px) rotate(-4deg)}}
-.screen-title{font-size:clamp(34px,6.2vw,100px);font-weight:700;line-height:1.05;margin:.1em 0 .25em;
+.screen-title{font-size:clamp(34px,6.2vw,100px);font-weight:700;line-height:1.05;text-wrap:balance;margin:.1em 0 .25em;
   background:linear-gradient(90deg,var(--gold),var(--pink),var(--cyan),var(--gold));background-size:300% 100%;
   -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
 @keyframes shine{to{background-position:300% 0}}
@@ -80,7 +80,7 @@ button:disabled{opacity:.4;cursor:default}
 .artist{font-size:clamp(17px,2vw,30px);color:var(--muted)}
 .count{font-size:clamp(60px,10vw,160px);font-weight:700;color:var(--pink);margin:.15em 0;animation:pop 1s ease-out infinite}
 @keyframes pop{0%{transform:scale(1.25);opacity:.4}30%{transform:scale(1);opacity:1}}
-.score{font-size:clamp(70px,12vw,190px);font-weight:700;color:var(--gold);line-height:1}
+.score{font-size:clamp(70px,12vw,190px);font-weight:700;color:var(--gold);line-height:1;direction:ltr}
 .score small{font-size:.3em;color:var(--muted)}
 .hint{margin-top:2em;color:var(--muted);font-size:14px;opacity:.8}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
@@ -119,6 +119,7 @@ label{display:block;margin:10px 0;font-size:14px;color:var(--muted)}
 label input:not([type=checkbox]):not([type=range]),label select{display:block;width:100%;margin-top:4px}
 input:not([type=checkbox]):not([type=range]),select,textarea{background:#120b24;border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--pink)}
+input:not([dir]):not([type=range]):not([type=checkbox]),textarea{unicode-bidi:plaintext}
 textarea{resize:vertical;font-size:13px;font-family:ui-monospace,Menlo,monospace;line-height:1.45}
 label.check{display:flex;gap:8px;align-items:center;color:var(--text)}
 label input[type=range]{display:block;width:100%;margin-top:6px}
@@ -207,14 +208,14 @@ html.guestmode,body.guest{overflow:auto;height:auto}
     </div>
     <div id="transport">
       <button class="tb" id="tRestart" title="מההתחלה">⏮</button>
-      <button class="tb" id="tPlay" title="נגן / השהה (רווח)">▶</button>
-      <button class="tb" id="tNext" title="הבא בתור (N)">⏭</button>
+      <button class="tb" id="tPlay" title="ניגון / השהיה (רווח)">▶</button>
+      <button class="tb" id="tNext" title="לזמר הבא (N)">⏭</button>
       <span id="time">0:00 / 0:00</span>
       <input type="range" id="seek" min="0" max="1000" value="0">
-      <span class="tgroup" id="vocalGroup" title="הנמכת קול הזמר (V)">🎙️ הנמכת שירה <input type="range" id="tVocal" min="0" max="1" step="0.05" value="0"></span>
-      <span class="tgroup" dir="ltr" title="תזמון המילים (מקשי [ ו-])"><button class="tb" id="tLate" title="המילים מאוחר יותר">−</button><span id="tOff">0.0s</span><button class="tb" id="tEarly" title="המילים מוקדם יותר">+</button> <span dir="rtl">תזמון מילים</span></span>
+      <span class="tgroup" id="vocalGroup" title="הנמכת קול הזמר (V)">🎙️ הנמכת הזמר <input type="range" id="tVocal" min="0" max="1" step="0.05" value="0"></span>
+      <span class="tgroup" dir="ltr" title="תזמון המילים (אפשר גם עם מקשי הסוגריים המרובעים)"><button class="tb" id="tLate" title="המילים מאוחר יותר">−</button><span id="tOff">0.0 שנ׳</span><button class="tb" id="tEarly" title="המילים מוקדם יותר">+</button> <span dir="rtl">תזמון מילים</span></span>
       <span class="tgroup">🔊 <input type="range" id="tVol" min="0" max="1" step="0.02"></span>
-      <button class="tb" id="tPanel" title="הצג / הסתר תפריט (P)">☰</button>
+      <button class="tb" id="tPanel" title="הצגה / הסתרה של התפריט (P)">☰</button>
       <button class="tb" id="tTV" title="מסך מלא לטלוויזיה (F)">📺 מסך מלא</button>
     </div>
   </main>
@@ -224,7 +225,7 @@ html.guestmode,body.guest{overflow:auto;height:auto}
       <button class="tab on" data-tab="queue">🎤 תור</button>
       <button class="tab" data-tab="songs">🎵 שירים</button>
       <button class="tab" data-tab="mic">🎙️ מיקרופון</button>
-      <button class="tab" data-tab="settings">⚙️ מסיבה</button>
+      <button class="tab" data-tab="settings">⚙️ הגדרות</button>
     </div>
 
     <section class="pane on" id="pane-queue">
@@ -234,12 +235,12 @@ html.guestmode,body.guest{overflow:auto;height:auto}
       <h3>בתור</h3>
       <div id="qList"></div>
       <div class="row">
-        <button class="btn primary" id="qStart">▶ התחל</button>
-        <button class="btn" id="qNext">⏭ הבא בתור</button>
-        <button class="btn ghost" id="qShuffle">🔀 ערבב</button>
-        <button class="btn ghost" id="qClear">נקה</button>
+        <button class="btn primary" id="qStart">▶ התחלה</button>
+        <button class="btn" id="qNext">⏭ לזמר הבא</button>
+        <button class="btn ghost" id="qShuffle">🔀 ערבוב</button>
+        <button class="btn ghost" id="qClear">ניקוי התור</button>
       </div>
-      <p class="tip">בחרו שירים בלשונית <b>שירים</b> וקבעו מי שר כל שיר. השירים מתנגנים לפי הסדר, עם מסך „להתכונן” בין זמר לזמר.</p>
+      <p class="tip">בחרו שירים בלשונית <b>שירים</b> וקבעו מי שר כל שיר. השירים מתנגנים לפי הסדר, ובין זמר לזמר יש מסך „מתכוננים”.</p>
     </section>
 
     <section class="pane" id="pane-songs">
@@ -248,7 +249,7 @@ html.guestmode,body.guest{overflow:auto;height:auto}
         <button class="btn primary" id="addFile">＋ קובצי מוזיקה</button>
         <input type="file" id="fileIn" accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.flac,.aac,.mp4,.m4v,.webm,.mkv" multiple hidden>
       </div>
-      <p class="tip">בסרטוני קריוקי מיוטיוב המילים כבר מופיעות על המסך. לקובצי מוזיקה משלכם, מילים מתוזמנות נמצאות אוטומטית (בחינם, מ-LRCLIB) ואפשר להנמיך את קול הזמר. אפשר גם פשוט לגרור קבצים לחלון.</p>
+      <p class="tip">בסרטוני קריוקי מיוטיוב המילים כבר מופיעות על המסך. לקובצי מוזיקה משלכם, מילים מתוזמנות נמצאות ברשת אוטומטית ובחינם, ואפשר להנמיך את קול הזמר. אפשר גם פשוט לגרור קבצים לחלון.</p>
       <input id="libSearch" placeholder="חיפוש בשירים שלכם…">
       <h3>ספריית השירים</h3>
       <div id="libList"></div>
@@ -256,32 +257,32 @@ html.guestmode,body.guest{overflow:auto;height:auto}
 
     <section class="pane" id="pane-mic">
       <button class="btn primary" id="micBtn">🎤 הפעלת מיקרופון</button>
-      <label>מיקרופון<select id="micDev"><option value="">מיקרופון ברירת מחדל</option></select></label>
+      <label>מיקרופון<select id="micDev"><option value="">מיקרופון ברירת המחדל</option></select></label>
       <div class="meter"><div id="micMeter"></div></div>
       <label class="check"><input type="checkbox" id="micMon"> להשמיע את הקול ברמקולים</label>
-      <label>עוצמת הקול<input type="range" id="micVol" min="0" max="2" step="0.05"></label>
+      <label>עוצמת המיקרופון<input type="range" id="micVol" min="0" max="2" step="0.05"></label>
       <label>הד<input type="range" id="micEcho" min="0" max="0.7" step="0.05"></label>
-      <label>ריוורב (תחושה של אולם הופעות)<input type="range" id="micRev" min="0" max="1" step="0.05"></label>
-      <label class="check"><input type="checkbox" id="setScore"> ציון מסיבה לכל זמר בסוף השיר (דרך המיקרופון)</label>
+      <label>הדהוד (תחושה של אולם הופעות)<input type="range" id="micRev" min="0" max="1" step="0.05"></label>
+      <label class="check"><input type="checkbox" id="setScore"> ציון לכל זמר בסוף השיר (בעזרת המיקרופון)</label>
       <h3>טיפים</h3>
-      <p class="tip">• צפצוף חזק = פידבק. הנמיכו את עוצמת הקול, או הרחיקו את המיקרופון מהרמקולים (או שימו אותו מאחוריהם).<br>
-      • רמקולים עם חוט או HDMI לטלוויזיה עובדים הכי טוב. רמקול בלוטות׳ מוסיף השהיה והקול נשמע מאחר — במקרה כזה בטלו את „להשמיע את הקול ברמקולים” ופשוט שירו חזק!<br>
-      • מיקרופון USB או מיקרופון חוטי פשוט עובדים מצוין. גם המיקרופון של המחשב הנייד עובד (לציונים ולכיף).</p>
+      <p class="tip">• שומעים צפצוף חזק? זה פידבק. הנמיכו את עוצמת המיקרופון, או הרחיקו את המיקרופון מהרמקולים (או החזיקו אותו מאחוריהם).<br>
+      • רמקולים חוטיים או חיבור HDMI לטלוויזיה עובדים הכי טוב. רמקול בלוטות׳ מוסיף השהיה, והקול נשמע באיחור — במקרה כזה הורידו את הסימון מ„להשמיע את הקול ברמקולים” ופשוט שירו חזק!<br>
+      • מיקרופון USB או מיקרופון חוטי זול עובדים מצוין. גם המיקרופון של המחשב הנייד מתאים (לציונים ולכיף).</p>
     </section>
 
     <section class="pane" id="pane-settings">
       <h3>יום הולדת</h3>
       <label>הכיתוב הגדול על המסך<input id="setBanner"></label>
-      <label>שם החוגג/ת (נכנס לשיר „יום הולדת שמח” המובנה)<input id="setName"></label>
+      <label>שם החוגג/ת (מופיע בשיר „יום הולדת שמח” המובנה)<input id="setName"></label>
       <button class="btn" id="setConfetti">🎉 לזרוק קונפטי</button>
       <h3>תצוגה</h3>
       <label>ספירה לאחור בין זמרים: <span id="setReadyVal"></span><input type="range" id="setReady" min="0" max="10" step="1"></label>
       <label>גודל המילים: <span id="setLyrVal"></span><input type="range" id="setLyr" min="0.6" max="1.6" step="0.05"></label>
       <label>צבע הדגשת המילים<select id="setHi"><option value="#ffd23f">זהב</option><option value="#ff4fa3">ורוד</option><option value="#3fe0ff">תכלת</option><option value="#4ade80">ירוק</option></select></label>
-      <label>הנמכת שירה לקבצים חדשים: <span id="setVocalVal"></span><input type="range" id="setVocal" min="0" max="1" step="0.05"></label>
-      <h3>מקלדת</h3>
-      <p class="tip">רווח – נגן/השהה · N – הבא בתור · F – מסך מלא · P – תפריט צד · ← → – קפיצה של 5 שניות · [ ] – תזמון מילים · V – הנמכת שירה</p>
-      <h3>זהירות</h3>
+      <label>הנמכת קול הזמר בקבצים חדשים: <span id="setVocalVal"></span><input type="range" id="setVocal" min="0" max="1" step="0.05"></label>
+      <h3>קיצורי מקלדת</h3>
+      <p class="tip">רווח – ניגון/השהיה · N – לזמר הבא · F – מסך מלא · P – תפריט הצד · חיצים – קפיצה של 5 שניות · סוגריים מרובעים – תזמון המילים · V – הנמכת הזמר</p>
+      <h3>אזור מסוכן</h3>
       <button class="btn ghost" id="setWipe">🗑 מחיקת כל השירים השמורים</button>
     </section>
   </aside>
@@ -293,7 +294,7 @@ html.guestmode,body.guest{overflow:auto;height:auto}
   <div id="edYT">
     <label>קישור ליוטיוב<input id="edUrl" dir="ltr" placeholder="https://www.youtube.com/watch?v=…"></label>
     <div class="row"><input id="edYtq" placeholder="שיר לחיפוש, למשל: ירושלים של זהב" style="flex:1;width:auto"><button class="btn" id="edYtSearch">חיפוש ביוטיוב ↗</button></div>
-    <p class="tip">החיפוש פותח את יוטיוב ומוסיף את המילה „קריוקי”. בחרו סרטון, העתיקו את הקישור משורת הכתובת והדביקו אותו למעלה.</p>
+    <p class="tip">החיפוש נפתח ביוטיוב, עם המילה „קריוקי”. בחרו סרטון, העתיקו את הקישור משורת הכתובת והדביקו אותו למעלה.</p>
     <img id="edThumb" alt="" hidden>
   </div>
   <div id="edFile"><div class="filechip" id="edFileName"></div></div>
@@ -305,13 +306,13 @@ html.guestmode,body.guest{overflow:auto;height:auto}
   <div class="row">
     <button class="btn" id="edFind">🔎 חיפוש מילים ברשת</button>
     <label class="btn" style="margin:0;color:var(--text)">📄 טעינת קובץ LRC<input type="file" id="edLrc" accept=".lrc,.txt,text/plain" hidden></label>
-    <button class="btn ghost" id="edClear">נקה</button>
+    <button class="btn ghost" id="edClear">ניקוי</button>
   </div>
   <div id="edResults"></div>
-  <textarea id="edLyrics" rows="7" dir="auto" placeholder="כאן נכנסות המילים. מילים מתוזמנות כמו „[00:12.30] שורה ראשונה” זזות יחד עם המוזיקה. גם טקסט רגיל עובד."></textarea>
-  <p class="tip" id="edYtTip">בסרטוני קריוקי המילים כבר מופיעות — השאירו את זה ריק. לקליפ רגיל אפשר להוסיף מילים והן יופיעו מעל הסרטון.</p>
-  <div id="edVocalRow"><label>הנמכת שירה: <span id="edVocalVal"></span><input type="range" id="edVocal" min="0" max="1" step="0.05"></label>
-  <p class="tip">מבטל את הקול שבמרכז ההקלטה. בחלק מהשירים זה עובד מעולה ובחלק פחות — אפשר לכוונן תוך כדי השיר.</p></div>
+  <textarea id="edLyrics" rows="7" placeholder="הדביקו כאן את המילים. מילים עם זמנים (בפורמט LRC) מתקדמות יחד עם המוזיקה. גם טקסט רגיל עובד."></textarea>
+  <p class="tip" id="edYtTip">בסרטוני קריוקי המילים כבר מופיעות — השאירו את השדה ריק. לקליפ רגיל אפשר להוסיף מילים והן יופיעו מעל הסרטון.</p>
+  <div id="edVocalRow"><label>הנמכת קול הזמר: <span id="edVocalVal"></span><input type="range" id="edVocal" min="0" max="1" step="0.05"></label>
+  <p class="tip">מנמיך את מה שנמצא במרכז ההקלטה — בדרך כלל זה הזמר. בחלק מהשירים זה עובד מעולה ובחלק פחות, ואפשר לכוונן תוך כדי השיר.</p></div>
   <div class="row end">
     <button class="btn ghost" id="edCancel">ביטול</button>
     <button class="btn" id="edSave">שמירה</button>
@@ -354,6 +355,8 @@ html.guestmode,body.guest{overflow:auto;height:auto}
 /* ---------------- helpers ---------------- */
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bi=s=>'\u2068'+String(s??'')+'\u2069';
+const le=n=>{n=String(n??'').trim();return 'ל'+(/^[א-ת]/.test(n)?'':'-')+bi(n)};
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const fmt=s=>{if(!isFinite(s)||s<0)s=0;const m=Math.floor(s/60),x=Math.floor(s%60);return m+':'+String(x).padStart(2,'0')};
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36);
@@ -363,9 +366,9 @@ function load(k,d){try{const v=JSON.parse(localStorage.getItem(k));if(v==null)re
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 let toastT;function toast(m,ms=3400){const t=$('#toast');t.innerHTML=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),ms)}
 
-const S=load('kk.settings',{banner:'יום הולדת שמח אמא! 🎂',bdayName:'אמא',getReady:5,lyr:1,hi:'#ffd23f',defVocal:0.8,volume:0.9,
+const S=load('kk.settings',{banner:'יום הולדת שמח, אמא! 🎂',bdayName:'אמא',getReady:5,lyr:1,hi:'#ffd23f',defVocal:0.8,volume:0.9,
   micMon:false,micVol:1,micEcho:0.15,micRev:0.35,showScore:true});
-if(S.banner==='Happy Birthday Mom! 🎂')S.banner='יום הולדת שמח אמא! 🎂';if(S.bdayName==='Mom')S.bdayName='אמא';
+if(S.banner==='Happy Birthday Mom! 🎂'||S.banner==='יום הולדת שמח אמא! 🎂')S.banner='יום הולדת שמח, אמא! 🎂';if(S.bdayName==='Mom')S.bdayName='אמא';
 const saveS=()=>save('kk.settings',S);
 let Q=load('kk.queue',[]); const saveQ=()=>{save('kk.queue',Q);remoteChanged()};
 const JOIN=(new URLSearchParams(location.search).get('join')||'').replace(/[^a-z0-9]/gi,'').toLowerCase();
@@ -377,11 +380,11 @@ const DB={db:null,
   req(mode,fn){return new Promise((res,rej)=>{if(!this.db)return res(mode==='readonly'?[]:undefined);const r=fn(this.db.transaction('songs',mode).objectStore('songs'));r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})},
   all(){return this.req('readonly',s=>s.getAll())}, put(x){return this.req('readwrite',s=>s.put(x))}, del(id){return this.req('readwrite',s=>s.delete(id))}, clear(){return this.req('readwrite',s=>s.clear())}
 };
-const BUILTIN={id:'builtin-hbd-he',kind:'builtin',lang:'he',get title(){return 'יום הולדת שמח'},get artist(){return 'ל'+(S.bdayName||'חוגג/ת')+' — שיר מובנה'},offset:0,vocalCut:0,builtin:true};
+const BUILTIN={id:'builtin-hbd-he',kind:'builtin',lang:'he',get title(){return 'יום הולדת שמח'},get artist(){return le(S.bdayName||'חוגג/ת')+' — שיר מובנה'},offset:0,vocalCut:0,builtin:true};
 const BUILTIN_EN={id:'builtin-hbd',kind:'builtin',lang:'en',get title(){return 'Happy Birthday'},get artist(){return 'באנגלית — שיר מובנה'},offset:0,vocalCut:0,builtin:true};
 let LIB=[BUILTIN,BUILTIN_EN];
 const getSong=id=>LIB.find(s=>s.id===id);
-const songTitle=s=>s?(s.title||'ללא שם'):'(שיר חסר)';
+const songTitle=s=>bi(s?(s.title||'ללא שם'):'(שיר חסר)');
 
 /* ---------------- lyrics parsing ---------------- */
 function parseLRC(txt){
@@ -521,7 +524,7 @@ async function micOn(deviceId){
     M.in.connect(M.conv);M.conv.connect(M.rev);M.rev.connect(M.out);M.out.connect(ctx.destination);
   }
   M.src=ctx.createMediaStreamSource(M.stream);M.src.connect(M.in);micApply();
-  $('#micBtn').textContent='🎤 המיקרופון פועל — כיבוי';
+  $('#micBtn').textContent='🎤 המיקרופון פועל (לחצו לכיבוי)';
   try{const devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');const cur=M.stream.getAudioTracks()[0]?.getSettings().deviceId;
     $('#micDev').innerHTML=devs.map(d=>`<option value="${esc(d.deviceId)}"${d.deviceId===cur?' selected':''}>${esc(d.label||'מיקרופון')}</option>`).join('')}catch{}
 }
@@ -542,7 +545,7 @@ async function birthdaySong(name,lang='he'){
   const lines=he?[
     [['G4',.75,'יום '],['G4',.25,'הו'],['A4',1,'ל'],['G4',1,'דת '],['C5',1,'ש'],['B4',2,'מח']],
     [['G4',.75,'יום '],['G4',.25,'הו'],['A4',1,'ל'],['G4',1,'דת '],['D5',1,'ש'],['C5',2,'מח']],
-    [['G4',.75,'יום '],['G4',.25,'הו'],['G5',1,'ל'],['E5',1,'דת '],['C5',1,'ל'],['B4',1,name],['A4',1,null]],
+    [['G4',.75,'יום '],['G4',.25,'הו'],['G5',1,'ל'],['E5',1,'דת '],['C5',1,/^[א-ת]/.test(name)?'ל':'ל-'],['B4',1,name],['A4',1,null]],
     [['F5',.75,'יום '],['F5',.25,'הו'],['E5',1,'ל'],['C5',1,'דת '],['D5',1,'ש'],['C5',3,'מח! 🎉']]]:[
     [['G4',.75,'Hap'],['G4',.25,'py '],['A4',1,'birth'],['G4',1,'day '],['C5',1,'to '],['B4',2,'you']],
     [['G4',.75,'Hap'],['G4',.25,'py '],['A4',1,'birth'],['G4',1,'day '],['D5',1,'to '],['C5',2,'you']],
@@ -611,7 +614,7 @@ async function startSong(entry){
   clearTimers();stopMedia();const my=token;now=entry;const song=getSong(entry.songId);
   if(!song)return advance();
   setPhase('playing');score.hit=score.total=0;
-  $('#np').innerHTML=`<span class="pill">🎤 <b>${esc(entry.singer)}</b> · ${esc(songTitle(song))}</span>`+(Q[0]?`<span class="pill">הבא בתור: ${esc(Q[0].singer)}</span>`:'');
+  $('#np').innerHTML=`<span class="pill">🎤 <b>${esc(bi(entry.singer))}</b> · ${esc(songTitle(song))}</span>`+(Q[0]?`<span class="pill">הבא בתור: ${esc(bi(Q[0].singer))}</span>`:'');
   audio();updateTransport();
   if(song.kind==='yt'){
     setMode('yt');Lyr.load(song.lyricsText,song);P.kind='yt';ytLast={raw:-1,t:0,at:0};
@@ -637,7 +640,7 @@ async function startSong(entry){
 vid.addEventListener('loadedmetadata',()=>{if(P.kind==='file'&&vid.videoWidth>0){setMode('video');Lyr.load(Lyr.text,getSong(now?.songId))}});
 vid.addEventListener('ended',()=>{if(P.kind==='file'&&phase==='playing')songEnded()});
 vid.addEventListener('play',updatePlayBtn);vid.addEventListener('pause',updatePlayBtn);
-vid.addEventListener('error',()=>{if(P.kind==='file'&&vid.getAttribute('src'))toast('הדפדפן לא מצליח לנגן את הקובץ הזה. הכי טוב עובדים MP3,‏ M4A,‏ WAV ו-MP4.',6000)});
+vid.addEventListener('error',()=>{if(P.kind==='file'&&vid.getAttribute('src'))toast('הדפדפן לא מצליח לנגן את הקובץ הזה. הקבצים שעובדים הכי טוב: MP3,‏ M4A,‏ WAV ו-MP4.',6000)});
 
 let lastScore=null;
 function songEnded(){
@@ -658,23 +661,23 @@ function renderOverlay(){
   o.hidden=false;const nx=Q[0],ns=nx&&getSong(nx.songId);
   if(phase==='idle'){
     o.innerHTML=`<div class="ov"><div class="cake">🎂</div><div class="screen-title">${esc(S.banner)}</div>
-      ${nx?`<div class="sub">ראשון בתור: <b>${esc(nx.singer)}</b> — ${esc(songTitle(ns))}</div>`:`<div class="sub">הוסיפו שירים בלשונית <b>🎵 שירים</b>, בחרו מי שר, ולחצו להתחיל.</div>`}
+      ${nx?`<div class="sub">ראשונים בתור: <b>${esc(bi(nx.singer))}</b> — ${esc(songTitle(ns))}</div>`:`<div class="sub">הוסיפו שירים בלשונית <b>🎵 שירים</b> ובחרו מי שר — ואז מתחילים!</div>`}
       <div class="row center">${nx?`<button class="big" data-act="start">▶ מתחילים את המסיבה!</button>`:''}
       <button class="big alt" data-act="hbd">🎂 שרים „יום הולדת שמח” עכשיו</button></div>
-      <div class="hint">רווח = השהיה · N = הבא בתור · F = מסך מלא · P = הצגת/הסתרת התפריט</div></div>`;
+      <div class="hint">רווח = השהיה · N = לזמר הבא · F = מסך מלא · P = הצגה/הסתרה של התפריט</div></div>`;
   }else if(phase==='ready'){
     const s=getSong(now.songId);
-    o.innerHTML=`<div class="ov"><div class="sub">להתכונן…</div><div class="singer">🎤 ${esc(now.singer)}</div>
-      <div class="songname">${esc(songTitle(s))}</div><div class="artist">${esc(s?.artist||'')}</div>
+    o.innerHTML=`<div class="ov"><div class="sub">מתכוננים…</div><div class="singer">🎤 ${esc(bi(now.singer))}</div>
+      <div class="songname">${esc(songTitle(s))}</div><div class="artist">${esc(bi(s?.artist||''))}</div>
       <div class="count" id="count">${S.getReady}</div>
-      <div class="row center"><button class="big" data-act="go">▶ להתחיל עכשיו</button><button class="big ghost" data-act="skip">דלג</button></div></div>`;
+      <div class="row center"><button class="big" data-act="go">▶ להתחיל עכשיו</button><button class="big ghost" data-act="skip">דילוג</button></div></div>`;
   }else if(phase==='applause'){
     const s=getSong(now?.songId),hb=s&&s.kind==='builtin';
     const msg=lastScore==null?'':lastScore>=95?'סופרסטאר! 🌟':lastScore>=88?'מדהים! 🔥':lastScore>=78?'כל הכבוד! 👏':'יפה מאוד! 😄';
     o.innerHTML=`<div class="ov"><div class="cake">${hb?'🥳':'👏'}</div>
-      <div class="screen-title">${hb?esc('יום הולדת שמח '+(S.bdayName||'')+'!'):esc('מחיאות כפיים ל'+(now?.singer||'זמר')+'!')}</div>
+      <div class="screen-title">${hb?esc('יום הולדת שמח'+(S.bdayName?', '+bi(S.bdayName):'')+'!'):esc('מחיאות כפיים '+le(now?.singer||'זמר')+'!')}</div>
       ${lastScore!=null?`<div class="score"><span id="scoreNum">0</span><small> / 100</small></div><div class="sub">${msg}</div>`:''}
-      ${nx?`<div class="sub">הבא בתור: <b>${esc(nx.singer)}</b> — ${esc(songTitle(ns))}</div>`:''}
+      ${nx?`<div class="sub">הבא בתור: <b>${esc(bi(nx.singer))}</b> — ${esc(songTitle(ns))}</div>`:''}
       <div class="row center"><button class="big" data-act="advance">${nx?'לזמר הבא ◀':'סיום'}</button>${s?`<button class="big ghost" data-act="again">↺ עוד פעם!</button>`:''}</div></div>`;
   }
 }
@@ -689,10 +692,10 @@ $('#overlay').addEventListener('click',e=>{const a=e.target.closest('[data-act]'
 /* ---------------- queue & library UI ---------------- */
 function renderQueue(){
   const nb=$('#nowBox');
-  if(now&&phase!=='idle'){const s=getSong(now.songId);nb.hidden=false;nb.innerHTML=`<div class="muted" style="font-size:13px">${phase==='ready'?'מתכוננים':phase==='applause'?'סיימו עכשיו':'שרים עכשיו'}</div><div class="t">🎤 ${esc(now.singer)} — ${esc(songTitle(s))}</div>`}
+  if(now&&phase!=='idle'){const s=getSong(now.songId);nb.hidden=false;nb.innerHTML=`<div class="muted" style="font-size:13px">${phase==='ready'?'מתכוננים':phase==='applause'?'סיימו הרגע':'שרים עכשיו'}</div><div class="t">🎤 ${esc(bi(now.singer))} — ${esc(songTitle(s))}</div>`}
   else nb.hidden=true;
   $('#qList').innerHTML=Q.length?Q.map((q,i)=>{const s=getSong(q.songId);return `<div class="item"><div class="qnum">${i+1}</div>
-    <div class="meta"><div class="t">${esc(q.singer)}</div><div class="s">${esc(songTitle(s))}${s?.artist?' · '+esc(s.artist):''}</div></div>
+    <div class="meta"><div class="t">${esc(bi(q.singer))}</div><div class="s">${esc(songTitle(s))}${s?.artist?' · '+esc(bi(s.artist)):''}</div></div>
     <div class="acts"><button class="ib" data-q="play" data-i="${i}" title="לשיר עכשיו">▶</button><button class="ib" data-q="up" data-i="${i}" title="למעלה">▲</button><button class="ib" data-q="down" data-i="${i}" title="למטה">▼</button><button class="ib" data-q="rm" data-i="${i}" title="הסרה">✕</button></div></div>`}).join('')
     :`<div class="empty">עוד אין אף אחד בתור.<br>היכנסו ל<b>🎵 שירים</b> ולחצו ＋ ליד שיר.</div>`;
   $('#qStart').disabled=!Q.length||phase==='playing';
@@ -714,7 +717,7 @@ function renderLib(){
   $('#libList').innerHTML=list.map(s=>{const k=s.kind==='builtin'?'synced':lyricKind(s.lyricsText);
     const badge=s.kind==='yt'&&k==='none'?'':`<span class="badge ${k==='synced'?'':k}">${k==='synced'?'מילים מתוזמנות':k==='plain'?'מילים (לא מתוזמנות)':'אין מילים'}</span>`;
     return `<div class="item"><div class="ic">${s.kind==='builtin'?'🎂':s.kind==='yt'?'📺':'🎵'}</div>
-    <div class="meta"><div class="t">${esc(songTitle(s))}</div><div class="s">${esc(s.artist||(s.kind==='yt'?'יוטיוב':''))} ${badge}</div></div>
+    <div class="meta"><div class="t">${esc(songTitle(s))}</div><div class="s">${esc(bi(s.artist||(s.kind==='yt'?'יוטיוב':'')))} ${badge}</div></div>
     <div class="acts"><button class="btn sm primary" data-l="q" data-id="${s.id}" title="הוספה לתור">＋</button>${s.builtin?'':`<button class="ib" data-l="ed" data-id="${s.id}" title="עריכה / מילים">✎</button><button class="ib" data-l="rm" data-id="${s.id}" title="מחיקה">🗑</button>`}</div></div>`}).join('')
     +(LIB.length<=2?`<div class="empty" style="margin-top:8px">בינתיים יש רק את שירי יום ההולדת המובנים.<br>הוסיפו סרטוני קריוקי מיוטיוב או קובצי מוזיקה משלכם (בכפתורים למעלה).</div>`:'');
   remoteChanged();
@@ -729,14 +732,14 @@ async function saveSong(s){const rec={...s};delete rec.builtin;await DB.put(rec)
 
 /* who is singing */
 let whoSongRef=null;
-function askSinger(song){whoSongRef=song;$('#whoSong').textContent=songTitle(song)+(song.artist?' — '+song.artist:'');
+function askSinger(song){whoSongRef=song;$('#whoSong').textContent=songTitle(song)+(song.artist?' — '+bi(song.artist):'');
   $('#whoChips').innerHTML=singers.slice(0,16).map(n=>`<button class="chip" data-n="${esc(n)}">${esc(n)}</button>`).join('')+`<button class="chip" data-n="כולם">כולם 🎉</button>`;
   $('#whoName').value='';$('#who').classList.add('on');setTimeout(()=>$('#whoName').focus(),30)}
 function queuePush(song,singer,by){singer=(singer||'').trim()||'כולם';
   if(singer!=='כולם'){singers=[singer,...singers.filter(n=>n!==singer)].slice(0,30);save('kk.singers',singers)}
   Q.push({qid:uid(),songId:song.id,singer,by:by||null});saveQ();renderQueue();return singer}
 function addToQueue(song,singer){singer=queuePush(song,singer);$('#who').classList.remove('on');
-  toast(`🎤 ${esc(singer)} — מקום ${Q.length} בתור`)}
+  toast(`🎤 ${esc(bi(singer))} — מקום ${Q.length} בתור`)}
 $('#whoChips').addEventListener('click',e=>{const c=e.target.closest('[data-n]');if(c)addToQueue(whoSongRef,c.dataset.n)});
 $('#whoOk').onclick=()=>addToQueue(whoSongRef,$('#whoName').value);
 $('#whoName').addEventListener('keydown',e=>{if(e.key==='Enter')addToQueue(whoSongRef,$('#whoName').value)});
@@ -778,7 +781,7 @@ async function findLyrics(){
   if(res===null){$('#edResults').innerHTML='<div class="muted">אין חיבור לשירות המילים — בדקו את האינטרנט.</div>';return}
   lastResults=rankLyrics(res,draftDur).slice(0,8);
   if(!lastResults.length){$('#edResults').innerHTML='<div class="muted">לא נמצאו מילים. בדקו את האיות של שם השיר/המבצע (נסו גם באנגלית), או הדביקו מילים למטה.</div>';return}
-  $('#edResults').innerHTML=lastResults.map((r,i)=>`<button class="res" data-r="${i}"><b>${esc(r.trackName)}</b> — ${esc(r.artistName)} <small>· ${fmt(r.duration)} · ${r.syncedLyrics?'✓ מתוזמנות':'לא מתוזמנות'}</small></button>`).join('');
+  $('#edResults').innerHTML=lastResults.map((r,i)=>`<button class="res" data-r="${i}"><b>${esc(bi(r.trackName))}</b> — ${esc(bi(r.artistName))} <small>· ${fmt(r.duration)} · ${r.syncedLyrics?'✓ מתוזמנות':'לא מתוזמנות'}</small></button>`).join('');
   if(!$('#edLyrics').value.trim())pickResult(0);
 }
 function pickResult(i){const r=lastResults[i];if(!r)return;$('#edLyrics').value=r.syncedLyrics||r.plainLyrics||'';$$('.res').forEach((b,k)=>b.classList.toggle('on',k===i));lyrState()}
@@ -819,7 +822,7 @@ addEventListener('drop',e=>{e.preventDefault();dragN=0;document.body.classList.r
 
 /* ---------------- transport ---------------- */
 function updatePlayBtn(){$('#tPlay').textContent=phase==='playing'&&!P.paused()?'⏸':'▶'}
-function updateTransport(){const s=getSong(now?.songId);$('#vocalGroup').style.display=s&&s.kind==='file'?'':'none';$('#tOff').textContent=((s?.offset||0)>=0?'+':'')+(s?.offset||0).toFixed(1)+'s'}
+function updateTransport(){const s=getSong(now?.songId);$('#vocalGroup').style.display=s&&s.kind==='file'?'':'none';$('#tOff').textContent=((s?.offset||0)>=0?'+':'')+(s?.offset||0).toFixed(1)+' שנ׳'}
 function togglePlay(){audio();if(phase==='playing'){P.paused()?P.play():P.pause();setTimeout(updatePlayBtn,60)}else if(phase==='ready')startSong(now);else if(phase==='idle'&&Q.length)advance();else if(phase==='applause')advance()}
 $('#tPlay').onclick=togglePlay;
 $('#tRestart').onclick=()=>{if(phase==='playing'){P.seek(0);score.hit=score.total=0}};
@@ -828,7 +831,7 @@ let seeking=false;$('#seek').oninput=()=>seeking=true;
 $('#seek').onchange=()=>{const d=P.dur();if(d&&phase==='playing')P.seek($('#seek').value/1000*d);seeking=false};
 $('#tVocal').oninput=()=>{const s=getSong(now?.songId);const v=+$('#tVocal').value;setVocal(v);if(s&&s.kind==='file'){s.vocalCut=v;clearTimeout(s._t);s._t=setTimeout(()=>saveSong(s),600)}};
 function shiftLyrics(d){const s=getSong(now?.songId);if(!s||s.builtin)return;s.offset=Math.round(((s.offset||0)+d)*10)/10;updateTransport();clearTimeout(s._t);s._t=setTimeout(()=>saveSong(s),600);
-  toast(`תזמון מילים <bdi dir="ltr">${s.offset>=0?'+':''}${s.offset.toFixed(1)}s</bdi> ${s.offset>0?'(מוקדם יותר)':s.offset<0?'(מאוחר יותר)':''}`,1500)}
+  toast(s.offset?`המילים יופיעו ${Math.abs(s.offset).toFixed(1)} שניות ${s.offset>0?'מוקדם':'מאוחר'} יותר`:'תזמון המילים חזר למקור',1500)}
 $('#tEarly').onclick=()=>shiftLyrics(.25);$('#tLate').onclick=()=>shiftLyrics(-.25);
 $('#tVol').value=S.volume;$('#tVol').oninput=()=>{setVolume(+$('#tVol').value);saveS()};
 function togglePanel(){document.body.classList.toggle('nopanel');setTimeout(()=>{sizeViz();Lyr.place(Lyr.anchor<0?0:Lyr.anchor)},50)}
@@ -844,7 +847,7 @@ addEventListener('keydown',e=>{
   if(k===' '){e.preventDefault();togglePlay()}else if(k==='n')nextSinger();else if(k==='f')toggleTV();else if(k==='p')togglePanel();
   else if(k==='arrowright'&&phase==='playing')P.seek(P.time()+5);else if(k==='arrowleft'&&phase==='playing')P.seek(P.time()-5);
   else if(k===']')shiftLyrics(.25);else if(k==='[')shiftLyrics(-.25);
-  else if(k==='v'){const s=getSong(now?.songId);if(s&&s.kind==='file'){const v=(+$('#tVocal').value)>0?0:(s.vocalCut||S.defVocal||.8);$('#tVocal').value=v;$('#tVocal').dispatchEvent(new Event('input'));toast(v?'שירה מונמכת':'שירה מקורית',1200)}}
+  else if(k==='v'){const s=getSong(now?.songId);if(s&&s.kind==='file'){const v=(+$('#tVocal').value)>0?0:(s.vocalCut||S.defVocal||.8);$('#tVocal').value=v;$('#tVocal').dispatchEvent(new Event('input'));toast(v?'קול הזמר מונמך':'קול הזמר המקורי',1200)}}
 });
 $$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.toggle('on',x===t));$$('.pane').forEach(p=>p.classList.toggle('on',p.id==='pane-'+t.dataset.tab))});
 $$('.modal').forEach(m=>m.addEventListener('mousedown',e=>{if(e.target===m)m.classList.remove('on')}));
@@ -907,9 +910,9 @@ const joinURL=()=>(isLocalHost()?PUBLIC_URL:location.origin+location.pathname)+'
 const R={peer:null,conns:new Set(),open:false,tries:0,qr:'',timer:null};
 function remoteChanged(){if(!R.conns.size)return;clearTimeout(R.timer);R.timer=setTimeout(()=>{const st=hostState();R.conns.forEach(c=>{if(c.open)try{c.send(st)}catch{}})},150)}
 function hostState(){return {t:'state',banner:S.banner,
-  lib:LIB.map(x=>({id:x.id,title:songTitle(x),artist:x.artist||'',kind:x.kind})),
-  queue:Q.map(q=>({qid:q.qid,singer:q.singer,title:songTitle(getSong(q.songId)),by:q.by||null})),
-  now:now&&phase!=='idle'?{singer:now.singer,title:songTitle(getSong(now.songId)),phase}:null}}
+  lib:LIB.map(x=>({id:x.id,title:songTitle(x),artist:x.artist?bi(x.artist):'',kind:x.kind})),
+  queue:Q.map(q=>({qid:q.qid,singer:bi(q.singer),title:songTitle(getSong(q.songId)),by:q.by||null})),
+  now:now&&phase!=='idle'?{singer:bi(now.singer),title:songTitle(getSong(now.songId)),phase}:null}}
 async function hostStart(){
   if(R.peer)return;
   if(!S.room){S.room=newRoom();saveS()}
@@ -938,18 +941,18 @@ async function hostMsg(c,d){
   if(d.t==='hello')return c.send(hostState());
   const singer=String(d.singer||'').trim().slice(0,40)||'אורח',by=String(d.by||'').slice(0,40)||null;
   if(d.t==='add'){const song=getSong(String(d.songId));if(!song)return c.send({t:'err',msg:'השיר הזה כבר לא נמצא ברשימה'});
-    queuePush(song,singer,by);c.send({t:'ok',msg:`🎤 נוספת לתור! מקום ${Q.length}`});toast(`📱 ${esc(singer)} בתור עם „${esc(songTitle(song))}”`)}
+    queuePush(song,singer,by);c.send({t:'ok',msg:`🎤 נוספת לתור! מקום ${Q.length}`});toast(`📱 ${esc(bi(singer))} בתור עם „${esc(songTitle(song))}”`)}
   else if(d.t==='addYT'){const id=ytId(String(d.url||'').slice(0,400));if(!id)return c.send({t:'err',msg:'זה לא נראה כמו קישור ליוטיוב'});
     let song=LIB.find(x=>x.kind==='yt'&&x.ytId===id);
     if(!song){song={id:uid(),kind:'yt',ytId:id,title:'סרטון מיוטיוב',artist:'',lyricsText:'',offset:0,added:Date.now()};
       try{const r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));if(r.ok){const j=await r.json();const sp=splitYtTitle(j.title,j.author_name);song.title=sp.title||song.title;song.artist=sp.artist}}catch{}
       await saveSong(song)}
-    queuePush(song,singer,by);c.send({t:'ok',msg:`🎤 „${songTitle(song)}” נוסף לתור! מקום ${Q.length}`});toast(`📱 ${esc(singer)} בתור עם „${esc(songTitle(song))}”`)}
+    queuePush(song,singer,by);c.send({t:'ok',msg:`🎤 „${songTitle(song)}” נוסף לתור! מקום ${Q.length}`});toast(`📱 ${esc(bi(singer))} בתור עם „${esc(songTitle(song))}”`)}
   else if(d.t==='rm'){const i=Q.findIndex(q=>q.qid===d.qid&&q.by&&q.by===by);if(i>=0){Q.splice(i,1);saveQ();renderQueue();c.send({t:'ok',msg:'הוסר מהתור'})}}
 }
 function renderPhones(){
   const b=$('#phoneBox');if(!b)return;
-  if(!S.phones){b.innerHTML=`<p class="tip">האורחים סורקים קוד QR עם מצלמת הטלפון, כותבים את השם שלהם ובוחרים שיר מהרשימה או מיוטיוב — והוא נכנס לתור כאן.</p><button class="btn primary" data-ph="on">📱 להפעיל הוספה מהטלפון</button>`;return}
+  if(!S.phones){b.innerHTML=`<p class="tip">האורחים סורקים קוד QR עם מצלמת הטלפון, כותבים את השם שלהם ובוחרים שיר מהרשימה או מיוטיוב — והוא נכנס לתור כאן.</p><button class="btn primary" data-ph="on">📱 הפעלת הוספה מהטלפון</button>`;return}
   const n=R.conns.size;
   b.innerHTML=(R.open&&R.qr?`<div class="qrbox"><img src="${R.qr}" alt="QR"><div><div><span class="dot ok"></span>מוכן! ${n?`<b>${n}</b> ${n===1?'טלפון מחובר':'טלפונים מחוברים'}`:'סרקו עם מצלמת הטלפון'}</div>
       <div class="qrlink" dir="ltr">${esc(joinURL())}</div><button class="btn sm" data-ph="copy" style="margin-top:6px">העתקת הקישור</button></div></div>`
@@ -970,7 +973,7 @@ const GU={peer:null,conn:null,st:null,retry:null,gid:'',tab:'songs'};
 function gStatus(txt,ok){const e=$('#gStatus');e.textContent=txt;e.classList.toggle('ok',!!ok)}
 function gName(){return $('#gName').value.trim()}
 function gSend(m){if(!GU.conn||!GU.conn.open){toast('אין חיבור למסך הקריוקי כרגע — מנסה להתחבר שוב…');return false}
-  if((m.t==='add'||m.t==='addYT')&&!gName()){toast('כתבו קודם איך קוראים לכם 🙂');$('#gName').focus();return false}
+  if((m.t==='add'||m.t==='addYT')&&!gName()){toast('כתבו קודם את השם שלכם 🙂');$('#gName').focus();return false}
   GU.conn.send({...m,singer:gName(),by:GU.gid});return true}
 function gRetry(ms){clearTimeout(GU.retry);GU.retry=setTimeout(gDial,ms)}
 function gDial(){
@@ -1000,16 +1003,16 @@ function gMsg(d){
 function gRender(){
   const st=GU.st;if(!st)return;
   $('#gBanner').textContent=st.banner||'';
-  const nb=$('#gNow');nb.hidden=!st.now;if(st.now)nb.innerHTML=`<div class="muted" style="font-size:13px">${st.now.phase==='ready'?'מתכוננים':st.now.phase==='applause'?'סיימו עכשיו':'שרים עכשיו'}</div><div class="t">🎤 ${esc(st.now.singer)} — ${esc(st.now.title)}</div>`;
+  const nb=$('#gNow');nb.hidden=!st.now;if(st.now)nb.innerHTML=`<div class="muted" style="font-size:13px">${st.now.phase==='ready'?'מתכוננים':st.now.phase==='applause'?'סיימו הרגע':'שרים עכשיו'}</div><div class="t">🎤 ${esc(st.now.singer)} — ${esc(st.now.title)}</div>`;
   const f=$('#gSearch').value.trim().toLowerCase();
   const lib=st.lib.filter(x=>!f||(x.title+' '+x.artist).toLowerCase().includes(f));
   $('#gLib').innerHTML=lib.length?lib.map(x=>`<div class="item"><div class="ic">${x.kind==='builtin'?'🎂':x.kind==='yt'?'📺':'🎵'}</div>
     <div class="meta"><div class="t">${esc(x.title)}</div><div class="s">${esc(x.artist)}</div></div>
-    <div class="acts"><button class="btn sm primary" data-gadd="${esc(x.id)}">＋ לשיר</button></div></div>`).join('')
+    <div class="acts"><button class="btn sm primary" data-gadd="${esc(x.id)}">＋ לתור</button></div></div>`).join('')
     :`<div class="empty">${f?'לא נמצא שיר כזה. אפשר להוסיף מיוטיוב 📺':'עוד אין שירים ברשימה. אפשר להוסיף מיוטיוב 📺'}</div>`;
   $('#gQn').textContent=st.queue.length?`(${st.queue.length})`:'';
   $('#gQueue').innerHTML=st.queue.length?st.queue.map((q,i)=>{const mine=q.by&&q.by===GU.gid;return `<div class="item${mine?' mine':''}"><div class="qnum">${i+1}</div>
-    <div class="meta"><div class="t">${esc(q.singer)}${mine?' <span class="badge plain">את/ה</span>':''}</div><div class="s">${esc(q.title)}</div></div>
+    <div class="meta"><div class="t">${esc(bi(q.singer))}${mine?' <span class="badge plain">שלך</span>':''}</div><div class="s">${esc(q.title)}</div></div>
     ${mine?`<div class="acts"><button class="ib" data-grm="${esc(q.qid)}" title="הסרה">✕</button></div>`:''}</div>`}).join('')
     :`<div class="empty">התור ריק — זה הזמן לבחור שיר! 🎤</div>`;
 }
